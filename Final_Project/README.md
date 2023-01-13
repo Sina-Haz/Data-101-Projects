@@ -1,4 +1,2 @@
-This is my final project for Data 101. For this project I take in several years worth of NBA regular season data to train multiple regression models, and 
-try to accurately predict a team's win percentage based off their traditional and advanced statistics. Then I use several statistical methods such as
-hypothesis testing, data visualization and data cleaning to optimize these models. Finally, I chose the best model based off which one has the 
-lowest root mean squared error when predicting against a testing set of data and draw further conclusions from there.
+For this project I take in several years worth of NBA regular season data to train multiple regression models, and try to accurately predict a 
+team's win percentage based off their traditional and advanced statistics. Then I use several statistical methods such as hypothesis testing, data visualization and data cleaning to optimize these models. Finally, I chose the best model based off which one has the lowest root mean squared error when predicting against a testing set of data and draw further conclusions from there.
