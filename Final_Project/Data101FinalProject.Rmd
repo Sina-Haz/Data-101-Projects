@@ -1,0 +1,216 @@
+---
+title: "Final Data 101 Project Report"
+author: "Sina Hazeghi"
+date: "2022-12-12"
+output: html_document
+---
+
+# Final Data 101 Project
+
+In this project I decided to look at NBA regular season data obtained from <https://www.basketball-reference.com>. The data is from 5 regular seasons from the 2018-19 season to 2022-23 season. My main goal was to create an accurate regression model that can predict a team's win percentage given certain statistics.
+
+Here I load in my data sets. Note that I manually have to add the win percentages as they are not a part of the original data set and are not ordered in such a way that I can easily copy and paste them to a new column. This is why I don't use that many NBA season's worth of data.
+
+```{r}
+nba_data21 = read.csv("/Users/shazeghi/Downloads/sportsref_download.csv")
+nba_data20 = read.csv("/Users/shazeghi/Downloads/sportsref_download-20.csv")
+nba_data19 = read.csv("/Users/shazeghi/Downloads/sportsref_download-19.csv")
+nba_data18 = read.csv("/Users/shazeghi/Downloads/sportsref_download18.csv")
+nba_data22 = read.csv("/Users/shazeghi/Downloads/sportsref_download-22.csv")
+
+nba_data21 = nba_data21[1:30,]
+nba_data21$Wins = c(.561,.683,.622,.524,.780,.524,.598,.415,.537,.585,.402,.622,.561,.305,.646,.366,.646,.622,.244,.585,.439,.427,.512,.634,.537,.451,.329,.280,.268,.293)
+
+nba_data20 = nba_data20[1:30,]
+nba_data20$Wins = c(.639,.667,.472,.722,.583,.708,.472,.653,.431,.653,.569,.431,.542,.681,.528,.500,.583,.319,.375,.458,.431,.583,.458,.236,.556,.569,.278,.306,.292,.306)
+
+
+nba_data19 = nba_data19[1:30,]
+nba_data19$Wins = c(.767,.611,.573,.681,.417,.473,.347,.451,.667,.466,.732,.297,.736,.466,.603,.299,.486,.630,.611,.589,.611,.431,.616,.452,.303,.292,.338,.231,.318,.354)
+
+nba_data18 = nba_data18[1:30,]
+nba_data18$Wins = c(.732,.695,.402,.622,.585,.646,.598,.707,.476,.390,.646,.354,.439,.598,.512,.451,.585,.610,.659,.476,.402,.585,.232,.512,.500,.476,.268,.207,.232,.402)
+
+nba_data22 = nba_data22[1:30,]
+nba_data22$Wins = c(.778,.583,.519,.517,.680,.519,.423,.615,.500,.615,.654,.400,.500,.500,.440,.760,.571,.500,.500,.538,.630,.407,.280,.308,.520,.250,.269,.444,.259,.536)
+
+```
+
+Next I split the data into training and testing sets.
+
+```{r}
+set.seed(1234)
+train_data <- rbind(nba_data18,nba_data19,nba_data20,nba_data21)
+na.omit(train_data)
+test_data <- nba_data22
+na.omit(test_data)
+View(train_data)
+```
+
+In order to cross-validate our data and prevent overfitting we define a train control variable and with this variable we can train a model. Note that for my model I wanted to be quite general and therefore included almost all of the traditional statistics recorded for teams. One thing I made sure not to include was Team because:
+
+a)  It is a categorical variable and is not meant for regression models
+
+b)  I want my model to be more generalizable and there are certain teams that throughout this time period have had a consistently high win percentage, while in other eras they may not be winning as much.
+
+```{r}
+train_control = trainControl(method = "cv",number = 10,verboseIter = TRUE)
+
+Regression_Model = train(Wins~FG+FGA+X3P+X3PA+X3P.+X2P+X2PA+X2P.+FT+FTA+FT.+
+                           ORB+DRB+TRB+AST+STL+BLK+TOV+PF+PTS+FG.,
+                         data = train_data,
+                         method = "lm",
+                         trControl = train_control)
+```
+
+With this general model let's take a look at our rmse for the testing set:
+
+```{r}
+predicted = predict(Regression_Model,newdata = test_data)
+
+rmse(predicted,test_data$Wins)
+
+summary(Regression_Model)
+```
+
+Looking at a summary of the model, we see that attributes such as field goal percentage, free throw percentage, 2-pointer percentage, and 3-pointer percentage all have the biggest coefficients/effect on the model, while other attributes such as steals, turnovers, and personal fouls are judged to be the most statistically significant. To further visualize how certain variables are correlated with win percentage we can use 2D-plots
+
+```{r}
+plot(train_data$FG.,train_data$Wins, main = "Wins vs. Field Goal % ")
+abline(lm(Wins~FG.,data = train_data), col = "red")
+#From the plot we see that field goal percentage is seemingly linearly correlated with wins
+
+plot(train_data$FGA,train_data$Wins, main = "Wins vs. Field Goal Attempts")
+abline(lm(Wins~FGA,data = train_data), col = "red")
+#This plot indicates that there isn't significant correlation/relationship between
+#field goal attempts and wins therefore I may take it out of the model
+
+plot(train_data$X3P.,train_data$Wins, main= "Wins vs. 3-point percentage")
+abline(lm(Wins~X3P.,data = train_data), col = "red")
+#3 point percentage seems to be correlated with wins
+
+plot(train_data$X2P.,train_data$Wins, main = "Wins vs. 2-point percentage")
+abline(lm(Wins~X2P.,data = train_data), col = "red")
+#2 point percentage is also correlated with wins but not as strongly as 3 point percentage
+
+plot(train_data$ORB,train_data$Wins, main = "Wins vs Offensive Rebounds")
+abline(lm(Wins~ORB,data = train_data), col = "red")
+#Offensive rebounds isn't strongly correlated with wins so I may take it out of the model
+
+plot(train_data$DRB,train_data$Wins, main = "Wins vs. Defensive Rebounds")
+abline(lm(Wins~DRB,data = train_data), col = "red")
+#There may be a linear correlation between wins and defensive rebounds
+
+plot(train_data$PTS,train_data$Wins, main = "Wins vs. Points Per Game")
+abline(lm(Wins~PTS,data = train_data), col = "red")
+#There may be a linear correlation between wins and points per game
+```
+
+One way to further establish that there's a significant correlation between variables is through hypothesis testing against those variables' correlation coefficient. This can be done in R with the cor.test function which gives a p-value. For these tests the Null Hypothesis is that the two variables are not correlated (the correlation coefficient or r = 0) and the Alternative Hypothesis is that there is some correlation (i.e r != 0).
+
+```{r}
+cor.test(train_data$FG.,train_data$Wins)
+```
+
+This test gives a p-value of 8.73\*10\^-16 \<\<\< 0.05 therefore the Null Hypothesis is rejected and there may be some relationship between wins and Field Goal Percentage
+
+```{r}
+cor.test(train_data$FGA,train_data$Wins)
+```
+
+Here we get a p-value of 0.97 \> 0.05 there we cannot reject the Null Hypothesis and there likely is no correlation between field goal attempts and win percentage
+
+```{r}
+cor.test(train_data$X2P.,train_data$Wins)
+```
+
+The p-value for 2-point percentage is very small (\< 0.05) and therefore we reject the Null Hypothesis.
+
+```{r}
+cor.test(train_data$X3P.,train_data$Wins)
+
+cor.test(train_data$ORB,train_data$Wins)
+
+cor.test(train_data$DRB,train_data$Wins)
+
+cor.test(train_data$PTS,train_data$Wins)
+```
+
+Again here we see through hypothesis testing that the variables 3-point percentage, defensive rebounds, and points per game all have a very low p-value and are therefore likely correlated with win percentage while offensive rebounds has a p-value \> 0.05 and therefore may not be correlated with win percentage.
+
+One way we can automatically optimize our model is by using step wise regression, which involves adding or removing predictors from a regression model in a systematic way in order to improve its fit. Here direction = "both" indicates that the model tests both regression with more predictors and regression with less predictors.
+
+```{r, results = 'hide', echo = FALSE}
+Regr_Model2 = lm(Regression_Model,data = train_data)
+stepwise_model <- step(Regr_Model2, direction = "both")
+```
+
+Now let's evaluate our model by finding its rmse (root mean squared error) against the testing data. Note that we want to minimize rmse as much as possible as that indicates that our model is more accurate.
+
+```{r}
+predictions <- predict(stepwise_model, newdata = test_data, type = "response")
+
+rmse(predictions,test_data$Wins)
+```
+
+As we can see the rmse does have a bit of an improvement from our original model, but the improvement is marginal.
+
+We can also try making a simpler model that includes the statistics that we tested and proved were correlated to win percentage with hypothesis testing. Note that these significantly linearly-correlated variables were: field goal percentage, 2 point percentage, 3 point percentage, defensive rebounding, and points per game. Let's make this model and evaluate it's performance based on it's rmse on the testing set
+
+```{r}
+simpler.model = lm(Wins~FG.+X2P.+X3P.+DRB+PTS,data = train_data)
+
+simpler.predictions = predict(simpler.model,newdata = test_data,type = "response")
+
+rmse(simpler.predictions,test_data$Wins)
+```
+
+We see that this simpler model has an even better rmse than our much more complex models that we made before. Why could this be? Here are a couple of possible reasons I thought of.
+
+1)  It's possible that despite all of our efforts these more complex models are overfitting the data and therefore they are actually being made less accurate. If this is true then the simpler model is likely the best.
+
+2)  It could that our testing set is too small and that we may get different results with different testing sets (note that the max testing set can only go up to about n = 30 if we use any single season's worth of data since that is the amount of NBA teams in the league). This is something that is testable and would be best done by importing more NBA season's worth of data. However, since all the win percentages have to be manually inputted by me I will refrain from doing this since it is quite tedious. Instead I will test this by partitoning some of my training data.
+
+```{r}
+sample <- sample(c(TRUE, FALSE), nrow(train_data), replace=TRUE, prob=c(0.7,0.3))
+
+testing_data2 = train_data[!sample,]
+
+General_model_predictions2 = predict(Regression_Model,newdata = testing_data2)
+
+Step_model_predictions2 = predict(stepwise_model,newdata = testing_data2)
+
+Simpler_model_predictions2 = predict(simpler.model, newdata = testing_data2)
+
+gen_model_rmse = rmse(testing_data2$Wins,General_model_predictions2)
+step_model_rmse = rmse(testing_data2$Wins,Step_model_predictions2)
+simpler_model_rmse = rmse(testing_data2$Wins,Simpler_model_predictions2)
+gen_model_rmse
+step_model_rmse
+simpler_model_rmse
+```
+
+Here we see that the most general model actually has the lowest rmse and the simpler model has the highest rmse in contrast to our rmse results from the other testing set. To make a final decision as to which model we will ultimately use we will bind our two testing sets to make one big testing set and see each model's performance on this.
+
+```{r}
+testing_set3 = rbind(test_data,testing_data2)
+
+gen_predict = predict(Regression_Model,newdata = testing_set3)
+
+step_predict = predict(stepwise_model,newdata = testing_set3)
+
+simple_predict = predict(simpler.model,newdata = testing_set3)
+
+gen_rmse = rmse(testing_set3$Wins,gen_predict)
+step_rmse = rmse(testing_set3$Wins,step_predict)
+simple_rmse = rmse(testing_set3$Wins,simple_predict)
+gen_rmse
+step_rmse
+simple_rmse
+```
+
+## Conclusion:
+
+With this final testing set we see that all of the models are about equal in accuracy but ultimately our automated step wise regression model actually comes out on top. Therefore this is the regression model I would choose to forecast an NBA team's regular season win percentage given their per game statistics and data.
+
+Thank You for reading my presentation :)
