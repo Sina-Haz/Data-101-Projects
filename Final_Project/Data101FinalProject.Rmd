@@ -12,6 +12,12 @@ In this project I decided to look at NBA regular season data obtained from <http
 Here I load in my data sets. Note that I manually have to add the win percentages as they are not a part of the original data set and are not ordered in such a way that I can easily copy and paste them to a new column. This is why I don't use that many NBA season's worth of data.
 
 ```{r}
+library(caret)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(Metrics)
+
 nba_data21 = read.csv("/Users/shazeghi/Downloads/sportsref_download.csv")
 nba_data20 = read.csv("/Users/shazeghi/Downloads/sportsref_download-20.csv")
 nba_data19 = read.csv("/Users/shazeghi/Downloads/sportsref_download-19.csv")
