@@ -157,6 +157,8 @@ Now let's evaluate our model by finding its rmse (root mean squared error) again
 predictions <- predict(stepwise_model, newdata = test_data, type = "response")
 
 rmse(predictions,test_data$Wins)
+
+summary(Regr_Model2)
 ```
 
 As we can see the rmse does have a bit of an improvement from our original model, but the improvement is marginal.
@@ -169,6 +171,8 @@ simpler.model = lm(Wins~FG.+X2P.+X3P.+DRB+PTS,data = train_data)
 simpler.predictions = predict(simpler.model,newdata = test_data,type = "response")
 
 rmse(simpler.predictions,test_data$Wins)
+
+summary(simpler.model)
 ```
 
 We see that this simpler model has an even better rmse than our much more complex models that we made before. Why could this be? Here are a couple of possible reasons I thought of.
